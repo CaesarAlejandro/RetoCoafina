@@ -1,0 +1,55 @@
+name: Physics CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 3.1. Clona el repositorio (con la carpeta src/)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 3.2. Construye la imagen de Docker (usando tu nuevo Dockerfile)
+      - name: Build Docker image
+        run: docker build -t fisico-robot .
+
+      # 3.3. ¡EJECUTA EL SCRIPT EN LA SUB-CARPETA! (Paso clave)
+      - name: Run analysis to generate plot
+        run: |
+          # Monta el repo del runner en /app y ejecuta el script desde ahí.
+          # Usamos $GITHUB_WORKSPACE que apunta al directorio del checkout en Actions.
+          docker run --rm -v "$GITHUB_WORKSPACE":/app -w /app fisico-robot python ArchivosPython/main.py
+
+      # 3.4. Configura GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      # 3.5. Sube los artefactos (el index.html y el .png generado)
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.' # Sube todo, incluyendo el .png generado
+
+  # ... (trabajo de 'deploy' sin cambios) ...
+  deploy:
+    needs: build-and-deploy
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,21 @@
+# .dockerignore
+# ...existing code...
+
+# Ignorar el entorno virtual de Python (host)
+.venv/
+venv/
+*.venv/
+
+# Ignorar la caché de Python
+__pycache__/
+*.pyc
+
+# Archivos/dirs de IDE y git
+.vscode/
+.git/
+
+# Opcional: archivos de entorno y build
+.env
+build/
+dist/
+*.egg-info
