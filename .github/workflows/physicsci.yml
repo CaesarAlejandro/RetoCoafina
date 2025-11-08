@@ -1,0 +1,52 @@
+name: Physics CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 3.1. Clona el repositorio (con la carpeta src/)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      - name: Show generated files for debug
+        run: |
+          echo "Contenido de workspace:"
+          ls -la
+          echo "Contenido de Front:"
+          ls -la Front || true
+
+      # 3.4. Configura GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      # 3.5. Sube los artefactos (solo la carpeta Front)
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'Front' # Subir solo la carpeta Front para que index.html quede en la raíz del sitio
+
+  # ... (trabajo de 'deploy' sin cambios) ...
+  deploy:
+    needs: build-and-deploy
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
