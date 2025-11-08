@@ -14,10 +14,16 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # 3.1. Clona el repositorio (con la carpeta src/)
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Build Docker image
+        run: docker build -t fisico-robot .
+
+      - name: Run analysis to generate plot
+        run: |
+          # Monta el repo del runner en /app para que los archivos generados se escriban en el workspace
+          docker run --rm -v "$GITHUB_WORKSPACE":/app -w /app fisico-robot python ArchivosPython/main.py
 
       - name: Show generated files for debug
         run: |
@@ -26,16 +32,14 @@ jobs:
           echo "Contenido de Front:"
           ls -la Front || true
 
-      # 3.4. Configura GitHub Pages
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      # 3.5. Sube los artefactos (solo la carpeta Front)
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'Front' # Subir solo la carpeta Front para que index.html quede en la raíz del sitio
-
+          path: 'Front'
+ 
   # ... (trabajo de 'deploy' sin cambios) ...
   deploy:
     needs: build-and-deploy
