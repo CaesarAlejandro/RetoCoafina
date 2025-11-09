@@ -3,7 +3,8 @@
 FROM python:3.10 AS builder
 
 WORKDIR /app
-
+# Copiar el frontend
+COPY Front/ ./Front/
 # Instalar dependencias para el análisis
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
