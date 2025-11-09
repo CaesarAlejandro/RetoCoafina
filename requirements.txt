@@ -1,1 +1,7 @@
 matplotlib
+uproot
+awkward
+hist
+matplotlib
+numpy
+pandas
