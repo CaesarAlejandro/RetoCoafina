@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mi Página de Gráficas</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+
+<header id="barra-superior">
+    <div class="logo">CERN Visualizador</div>
+</header>
+
+<!-- seleccion -->
+<div id="contenedor">
+    <div id="panel-superior">
+        <label for="ejeX">Eje X</label>
+        <select id="ejeX"></select>
+
+        <label for="ejeY">Eje Y</label>
+        <select id="ejeY"></select>
+    </div>
+</div>
+<!--- fin seleccion --->
+
+<!-- Sección de la gráfica -->
+<div id="grafica"></div>
+
+<script src="../Manejo de Datos/Extraccion.js"></script>
+<script src="../Manejo de Datos/Interaccion.js"></script>
+
+<script>
+    d3.json("../Manejo de Datos/datos.json").then(datos => {
+        // Transformar JSON CERN
+        const arrayTransformado = transformarCERN(datos);
+
+        // Crear diccionario con todas las claves
+        const colector = propiedades(arrayTransformado);
+        const arrayResultados = listaPropiedad(arrayTransformado, ...colector);
+        const organizar = new Organizador(arrayResultados);
+
+        const lista = document.getElementById("lista-descripciones");
+        Object.entries(descripciones).forEach(([clave, texto]) => {
+            const li = document.createElement("li");
+            li.textContent = `${clave}: ${texto}`;
+            lista.appendChild(li);
+        });
+
+        // Poblar los dropdowns con todas las claves
+        const claves = organizar.getClaves();
+        const selectX = document.getElementById("ejeX");
+        const selectY = document.getElementById("ejeY");
+
+        claves.forEach(clave => {
+            const optionX = document.createElement("option");
+            optionX.value = clave;
+            optionX.textContent = clave;
+            selectX.appendChild(optionX);
+
+            const optionY = document.createElement("option");
+            optionY.value = clave;
+            optionY.textContent = clave;
+            selectY.appendChild(optionY);
+        });
+
+        // Función para actualizar la gráfica según selección
+        function actualizarGrafica() {
+            d3.select("#grafica").selectAll("*").remove(); // limpiar antes de graficar
+
+            const ejeX = organizar.getValues(selectX.value);
+            const ejeY = organizar.getValues(selectY.value);
+
+            const opciones = {
+                width: 500,
+                height: 300,
+                color: "steelblue",
+                margin: { top: 20, right: 20, bottom: 30, left: 40 }
+            };
+
+            graficar("#grafica", ejeX, ejeY, opciones);
+        }
+
+        // Eventos para actualizar al cambiar selección
+        selectX.addEventListener("change", actualizarGrafica);
+        selectY.addEventListener("change", actualizarGrafica);
+
+        // Valores iniciales
+        selectX.value = "BIN";
+        selectY.value = "DATA_COUNT";
+        actualizarGrafica();
+    });
+</script>
+
+
+<div id="descripciones" style="margin:20px; padding:15px; border:1px solid #90caf9; border-radius:8px; background:#f5f5f5; font-family:Consolas, monospace;">
+    <h3>📖 Descripción de las claves del JSON CERN</h3>
+    <ul id="lista-descripciones"></ul>
+</div>
+
+</body>
+</html>
