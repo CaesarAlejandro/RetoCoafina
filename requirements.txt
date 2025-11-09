@@ -1,7 +1,11 @@
-matplotlib
 uproot
 awkward
 hist
 matplotlib
 numpy
 pandas
+nbconvert
+jupyter-client
+
+fastapi
+uvicorn[standard] == 0.22.0

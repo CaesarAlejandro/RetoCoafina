@@ -1,56 +1,48 @@
-name: Physics CI/CD Pipeline
+name: CI - Pruebas del Web Service
 
 on:
   push:
-    branches: [ "main" ]
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+    branches-ignore:
+      - main
+  pull_request:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout repository
+      - name: Checkout del repositorio
         uses: actions/checkout@v4
 
-      - name: Build Docker image
+      - name: (CI) Construir la imagen Docker
         run: docker build -t fisico-robot .
 
-      - name: Run analysis to generate plot
-        run: |
-          # Monta el repo del runner en /app para que los archivos generados se escriban en el workspace
-          docker run --rm -v "$GITHUB_WORKSPACE":/app -w /app fisico-robot python ArchivosPython/main.py
+      - name: (CI) Ejecutar pruebas unitarias dentro del contenedor
+        run: docker run --rm -v "$GITHUB_WORKSPACE":/app -w /app fisico-robot pytest -q
 
-      - name: Show generated files for debug
+      - name: (CI) Ejecutar notebook y generar Front/
         run: |
-          echo "Contenido de workspace:"
+          docker run --rm -v "$GITHUB_WORKSPACE":/app -w /app fisico-robot bash -lc "\
+            if [ -f 'ArchivosPython/analysis.ipynb' ]; then \
+              python -m nbconvert --to notebook --execute 'ArchivosPython/analysis.ipynb' --output 'ArchivosPython/executed.ipynb' --ExecutePreprocessor.timeout=600 && \
+              python -m nbconvert --to html 'ArchivosPython/executed.ipynb' --output-dir=Front --output=index.html ; \
+            else \
+              echo 'No notebook found: ArchivosPython/analysis.ipynb, se salta generación'; \
+            fi"
+
+      - name: (CI) Verificar contenidos de Front
+        run: |
+          echo "Listado workspace:"
           ls -la
-          echo "Contenido de Front:"
-          ls -la Front || true
+          echo "Listado Front/:"
+          ls -la Front || { echo "ERROR: Front/ no existe"; exit 1; }
+          [ -f Front/index.html ] || { echo "ERROR: Front/index.html faltante"; exit 1; }
+          sh -c 'ls Front/*.png 2>/dev/null' || echo "WARNING: No PNGs en Front/ (puede ser esperado)"
 
-      - name: Setup Pages
+      - name: (CI) Configurar GitHub Pages
         uses: actions/configure-pages@v4
 
-      - name: Upload artifact
+      - name: (CI) Subir carpeta Front a Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'Front'
- 
-  # ... (trabajo de 'deploy' sin cambios) ...
-  deploy:
-    needs: build-and-deploy
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4

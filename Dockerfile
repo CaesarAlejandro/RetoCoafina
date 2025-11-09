@@ -1,19 +1,32 @@
-# Dockerfile
-# 1. Empezar desde una imagen oficial de Python
+# ...existing code...
 FROM python:3.10-slim
 
-# 2. Establecer un directorio de trabajo dentro del contenedor
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-# 3. Copiar e instalar SOLAMENTE los requisitos
-# (Asumiendo que requirements.txt está en la raíz)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Instalar herramientas del sistema si hacen falta para compilar paquetes
+RUN apt-get update && apt-get install -y build-essential --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/*
 
-
+# Copiar todo el repo (respetando .dockerignore)
 COPY . .
 
-# Comando por defecto: ejecutar tu script
-CMD ["python", "ArchivosPython/main.py"]
+# Actualizar pip y instalar dependencias:
+# - Si existe requirements.txt, usarlo (cacheable si se mantiene)
+# - Si no existe, instalar un conjunto mínimo necesario para ejecutar notebooks y el backend
+RUN python -m pip install --upgrade pip setuptools wheel && \
+    if [ -f requirements.txt ]; then \
+      pip install --no-cache-dir -r requirements.txt ; \
+    else \
+      pip install --no-cache-dir fastapi "uvicorn[standard]" jupyter nbconvert papermill matplotlib numpy pandas ; \
+    fi
+
+# Asegurar start.sh ejecutable
+RUN if [ -f /start.sh ]; then chmod +x /start.sh; fi
+
+EXPOSE 10000
+
+# Ejecutar el script de arranque (ejecuta notebook y levanta FastAPI/uvicorn)
+CMD ["/start.sh"]
 # ...existing code...
-# --- FIN ---
