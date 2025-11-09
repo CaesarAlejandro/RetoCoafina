@@ -1,5 +1,5 @@
 # --- Etapa 1: Builder ---
-# Instala todas las dependencias y ejecuta el análisis que consume mucho tiempo.
+# Instala dependencias y ejecuta el script de análisis.
 FROM python:3.10 AS builder
 
 WORKDIR /app
@@ -11,8 +11,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar el código de análisis
 COPY ArchivosPython/ ./ArchivosPython/
 
-# Ejecutar el notebook para generar los archivos .json en el directorio de trabajo /app
-RUN jupyter nbconvert --to notebook --execute ArchivosPython/analysis.ipynb --output-dir . --output analysis_executed.ipynb
+# Ejecutar el script de análisis directamente.
+# Si este script falla, el build se detendrá y mostrará el error.
+RUN python ArchivosPython/analysis.py
 
 # --- Etapa 2: Final ---
 # Usa una imagen ligera de Python para ejecutar el servidor web.
@@ -20,7 +21,7 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Instalar solo las dependencias necesarias para el servidor
+# Instalar solo las dependencias del servidor
 RUN pip install --no-cache-dir "fastapi[all]" uvicorn
 
 # Copiar el frontend
@@ -29,12 +30,11 @@ COPY Front/ ./Front/
 # Copiar el script del servidor
 COPY server.py .
 
-# Crear explícitamente el directorio de datos y luego copiar los archivos.
-# Esto elimina cualquier ambigüedad.
+# Crear el directorio de datos y copiar los JSON generados desde la etapa 'builder'
 RUN mkdir -p ./ArchivosPython
 COPY --from=builder /app/*.json ./ArchivosPython/
 
-# Expone el puerto que usará Uvicorn
+# Exponer el puerto del servidor
 EXPOSE 8000
 
 # Comando para iniciar el servidor FastAPI

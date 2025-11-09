@@ -11,3 +11,5 @@ vector
 ipykernel
 fastapi
 uvicorn[standard] == 0.22.0
+request
+aiohttp
